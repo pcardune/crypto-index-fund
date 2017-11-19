@@ -82,6 +82,7 @@ async function fetchHistoricalData({ num, filter }) {
     fetches.push(call());
   });
   await Promise.all(fetches);
+  return data;
 }
 
 function parseCSV(csvFilePath) {
@@ -123,12 +124,11 @@ async function fetchCurrentAllocation() {
   return { byId, totalUSD };
 }
 
-async function calculateTrades(num) {
-  const { byId, totalUSD } = await fetchCurrentAllocation();
-  const { marketCaps, totalMarketCap } = await fetchMarketCaps({
-    num,
-    filter: ({ symbol }) => symbol !== 'BTC',
-  });
+async function calculateTrades({
+  num,
+  currentAllocations: { byId, totalUSD },
+  marketCaps: { marketCaps, totalMarketCap },
+}) {
   const trades = marketCaps
     .slice(0, num)
     .filter(({ symbol }) => symbol !== 'BTC')
@@ -179,13 +179,21 @@ async function calculateTrades(num) {
   return trades;
 }
 
+async function simulateTrades({ num, filter, startingAmount }) {
+  const historical = await fetchHistoricalData({ num, filter });
+  // TODO...
+}
+
 async function main() {
-  await fetchHistoricalData({
-    num: 10,
-    filter: ({ symbol }) => symbol !== 'BTC',
+  const num = 10;
+  const trades = await calculateTrades({
+    num,
+    currentAllocations: await fetchCurrentAllocation(),
+    marketCaps: await fetchMarketCaps({
+      num,
+      filter: ({ symbol }) => symbol !== 'BTC',
+    }),
   });
-  return;
-  const trades = await calculateTrades(10);
 
   console.table(
     trades.map(
